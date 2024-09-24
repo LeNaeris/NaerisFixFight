@@ -5834,7 +5834,20 @@ public void setTotal_reculte() {
       SocketManager.GAME_SEND_WC_PACKET(this);
     }
   }
+  public void openZaapMenuCMD()
+  {
+      if(this.fight==null)
+      {
+          if(getDeshonor()>=3)
+          {
+              SocketManager.GAME_SEND_Im_PACKET(this,"183");
+              return;
+          }
 
+          this.setExchangeAction(new ExchangeAction<>(ExchangeAction.IN_ZAAPING,0));
+          SocketManager.GAME_SEND_WC_PACKET(this);
+      }
+  }
   public void verifAndAddZaap(short mapId)
   {
     if(!_zaaps.contains(mapId))
