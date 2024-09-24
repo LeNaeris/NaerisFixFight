@@ -29,6 +29,7 @@ import soufix.main.Main;
 import soufix.object.GameObject;
 import soufix.object.entity.Capture;
 import soufix.other.Action;
+import soufix.utility.Pair;
 import soufix.utility.TimerWaiterPlus;
 
 import java.util.*;
@@ -1459,7 +1460,7 @@ public GameMap(short id, String date, byte w, byte h, String key, String places,
   //v2.8 - Fixed starting fights against newly spawned monsters
   //v2.8 - Save old map and cell
   @SuppressWarnings("unused")
-public void startFightVersusMonstres(Player perso, MobGroup group)
+  public void startFightVersusMonstres(Player perso, MobGroup group)
   {
     if(perso.getFight()!=null)
       return;
@@ -1500,7 +1501,7 @@ public void startFightVersusMonstres(Player perso, MobGroup group)
      return;
    }
     if(party!=null&&party.getChief()!=null&&!party.getChief().getName().equals(perso.getName())&&party.isWithTheMaster3(perso,false)) {
-     	 perso.sendMessage("(<b>Groupe</b>) : Vous êtes sur la même map que votre chef de groupe, que celui-ci peut lancer des combats.");
+     	 perso.sendMessage("(<b>Groupe</b>) : Vous  tes sur la m me map que votre chef de groupe, que celui-ci peut lancer des combats.");
         return;
       }
   
@@ -1520,19 +1521,19 @@ public void startFightVersusMonstres(Player perso, MobGroup group)
     }
     if (Capture.isInDjRocheMap(perso.getCurMap().getId()) && perso.DonjonModulaire) {
         mode = false; 
-        perso.sendMessage("<b>(Modulaire)</b> : Votre mode Donjon Modulaire a été désactivé dans cette zone.");
+        perso.sendMessage("<b>(Modulaire)</b> : Votre mode Donjon Modulaire a  t  d sactiv  dans cette zone.");
     }
     if (perso.getCurMap().getSong() == 1 && perso.DonjonModulaire) {
         mode = false; 
-        perso.sendMessage("<b>(Modulaire)</b> : Votre mode Donjon Modulaire a été désactivé dans cette zone.");
+        perso.sendMessage("<b>(Modulaire)</b> : Votre mode Donjon Modulaire a  t  d sactiv  dans cette zone.");
     }
     if (Capture.isInEventMap(perso.getCurMap().getId()) && perso.isDuo()) {
         modduo = false; 
-        perso.sendMessage("<b>(Modulaire)</b> : Votre mode DUO a été désactivé dans cette zone.");
+        perso.sendMessage("<b>(Modulaire)</b> : Votre mode DUO a  t  d sactiv  dans cette zone.");
     }
       if (Capture.isInArenaMap(perso.getCurMap().getId()) && perso.DonjonModulaire) {
         mode = false; 
-      perso.sendMessage("<b>(Modulaire)</b> : Votre mode Modulaire a été désactivé dans cette zone.");
+      perso.sendMessage("<b>(Modulaire)</b> : Votre mode Modulaire a  t  d sactiv  dans cette zone.");
       }
     Fight fight=new Fight(id,this,perso,group,mode);
     if(fight == null) {
@@ -1549,14 +1550,28 @@ public void startFightVersusMonstres(Player perso, MobGroup group)
     SocketManager.GAME_SEND_MAP_FIGHT_COUNT_TO_MAP(this);
 	/*if(perso.getCurMap().getSong() == 0)
 		perso.Chek_item_boutique();*/ // Pour songe
-    if (party == null) {
-    if (perso.isSoloReady() && perso.getCurMap().getId() != 16072 && perso.getCurMap().getId() != 16073 && perso.getCurMap().getId() != 16074) {
+    if (party == null) { 
+	    TimerWaiterPlus.addNext(() -> { 
+	    	if (perso.isSoloReady() && perso.getCurMap().getId() != 16072 && perso.getCurMap().getId() != 16073 && perso.getCurMap().getId() != 16074) {
+	    
+    //	perso.setReady(true); // mettre booléen prêt 
+      //  SocketManager.GAME_SEND_FIGHT_PLAYER_READY_TO_FIGHT(perso.getFight(), 3, perso.getId(), true);
   		perso.getAccount().getGameClient().readyFight("GR1");
 
           perso.sendMessage("<b>(Informations)</b> : Le mode <b>SoloReady</b> est activé, donc votre combat a commencé.");
-      }
+	    	}},150, TimerWaiterPlus.DataType.CLIENT);
     }
-
+    if(party!=null && perso.getParty().isChief(perso.getId()))
+    {
+    	TimerWaiterPlus.addNext(() ->
+    	party.getPlayers().stream().forEach(follower -> {
+    		if (follower.isReadyFarm() && perso.getCurMap().getId() != 16072 && perso.getCurMap().getId() != 16073 && perso.getCurMap().getId() != 16074) {
+      			follower.setReady(true); // mettre bool en pr t 
+                SocketManager.GAME_SEND_FIGHT_PLAYER_READY_TO_FIGHT(follower.getFight(), 3, follower.getId(), true);
+			follower.getAccount().getGameClient().readyFight("GR1");
+    		}
+      }),700, TimeUnit.MILLISECONDS, TimerWaiterPlus.DataType.MAP);
+    }
       if(party!=null)
       {
       	TimerWaiterPlus.addNext(() ->
@@ -1570,12 +1585,12 @@ public void startFightVersusMonstres(Player perso, MobGroup group)
             		if(follower.getCurMap().id == perso.getCurMap().id)
       		if(follower != null)
             fight.joinFight(follower,perso.getId());
-      		if (follower.isReadyFarm() && perso.getCurMap().getId() != 16072 && perso.getCurMap().getId() != 16073 && perso.getCurMap().getId() != 16074) {
-  			follower.getAccount().getGameClient().readyFight("GR1");
-      		}
         }),0, TimeUnit.MILLISECONDS, TimerWaiterPlus.DataType.MAP);
       }
+     
     }
+
+
 
   //v2.8 - New Fight ID
   public synchronized short getFightID()
@@ -2151,6 +2166,16 @@ public void startFightVersusMonstres(Player perso, MobGroup group)
     GameCase cell=this.getCase(id);
     if(cell==null)
       return;
+    byte cof = (byte) (player.isOnMount() ? 2 : 1);
+    if(player != null && player.getGameClient() != null)
+    if (player.getGroupe() == null && player.getGameClient().depla != 0 && System.currentTimeMillis() - player.getGameClient().depla < (550 / cof)) {
+        player.sendDiscord(Constant.WEBHOOK_SPEEDHACK,"Le joueur " + player.getName() + " vient d'utiliser la faille speedHack Walk. à vérifier !");
+       // player.sendMessage(" Test "+120 / cof+" et "+player.getGameClient().depla+"");
+    }
+   // Long Test = System.currentTimeMillis() - player.getGameClient().depla;
+   // player.sendMessage(" Test "+120 / cof+" et "+ Test+"");
+
+
     player.setAway(false);
     synchronized(cell)
     {
@@ -3213,7 +3238,43 @@ public void startFightVersusMonstres(Player perso, MobGroup group)
 			// GestorSQL.BORRAR_MOBSFIX_MAPA(id);
 			mobGroups.clear();
 		}
+	    private Map<Integer, Pair<Integer, Integer>> flags = new HashMap<>();
+		public String getObjectsGDsPacketsInFight() {
+	        StringBuilder toreturn = new StringBuilder();
+	        boolean first = true;
+	        for(GameCase entry : cases)
+	        {
+	            if(entry.getObject() != null)
+	            {
+	                if(!first)toreturn.append((char)0x00);
+	                first = false;
+	                int cellID = entry.getId();
+	                toreturn.append("GDF|").append(cellID).append(";0;0");
+	            }
+	        }
+	        return toreturn.toString();
+	    }
 
+		public synchronized String getFightersGMsPackets(Fight fight, Player player) {
+	        StringBuilder packet = new StringBuilder("GM");
+
+	        try {
+	        for (GameCase cell : this.cases)
+	            cell.getFighters().stream().filter(fighter -> fighter.getFight() == fight)
+	                    .forEach(fighter -> packet.append("|").append(fighter.getGmPacket('+', false)));
+	        } catch (Exception e ){
+
+	        }
+	        return packet.toString();
+
+	    }
+	    public Map<Integer, Pair<Integer, Integer>> getFlags() {
+	        return flags;
+	    }
+
+	    public void setFlags(Map<Integer, Pair<Integer, Integer>> flags) {
+	        this.flags = flags;
+	    }
 		
 		
 }
